@@ -1,62 +1,46 @@
-#include "pch.h"
-#include <detours.h>
 #include <windows.h>
-
-
+#include "MinHook.h"  // Inclui o MinHook
+ 
 typedef int (WINAPI* MessageBoxA_t)(HWND, LPCSTR, LPCSTR, UINT);
-MessageBoxA_t OriginalMessageBoxA = nullptr;
+MessageBoxA_t OriginalMessageBoxA = NULL;
 
-
+// Função hookada
 int WINAPI HookedMessageBoxA(HWND hWnd, LPCSTR lpText, LPCSTR lpCaption, UINT uType) {
-    // Alterar o texto da mensagem
-    return OriginalMessageBoxA(hWnd, "Mensagem interceptada!", "Hooked", uType);
+    return OriginalMessageBoxA(hWnd, "Hooked Message!", "Intercepted", uType);
 }
 
-void HookFunction() {
-    // Obtém o endereço da função original MessageBoxA
-    OriginalMessageBoxA = (MessageBoxA_t)GetProcAddress(GetModuleHandleA("user32.dll"), "MessageBoxA");
-
-    // Inicia uma transação de detour
-    DetourTransactionBegin();
-
-    DetourUpdateThread(GetCurrentThread());
-
-    // Realiza o hook da função MessageBoxA
-    DetourAttach(&(PVOID&)OriginalMessageBoxA, HookedMessageBoxA);
-
-    // Conclui a transação de detour
-    DetourTransactionCommit();
+void InstallHook() {
  
+    // Inicializa o MinHook
+    MH_Initialize();
+
+    // Cria o hook para MessageBoxA
+    MH_CreateHook(&MessageBoxA, &HookedMessageBoxA, reinterpret_cast<LPVOID*>(&OriginalMessageBoxA));
+
+    // Ativa o hook
+    MH_EnableHook(&MessageBoxA);
 }
 
-void UnhookFunction() {
-    // Inicia uma transação de detour
-    DetourTransactionBegin();
-    DetourUpdateThread(GetCurrentThread());
+void RemoveHook() {
+    // Desativa o hook
+    MH_DisableHook(&MessageBoxA);
 
-    // Desfaz o hook da função MessageBoxA
-    DetourDetach(&(PVOID&)OriginalMessageBoxA, HookedMessageBoxA);
-
-    // Conclui a transação de detour
-    DetourTransactionCommit();
+    // Finaliza o MinHook
+    MH_Uninitialize();
 }
- 
 
-
+// Função principal da DLL
 BOOL APIENTRY DllMain(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpReserved)
 {
     switch (ul_reason_for_call)
     {
     case DLL_PROCESS_ATTACH:
-        MessageBox(NULL, L"DLL carregada com sucesso!", L"Informação", MB_OK);
-        HookFunction();
-         
+        MessageBoxA(NULL, "DLL INJETADO", "Hook", MB_OK);
+        InstallHook();  // Instala o hook quando a DLL é carregada
+        MessageBoxA(NULL, "Se funcionou essa msg não deve aparecer!", "Hook", MB_OK);
         break;
-    case DLL_THREAD_ATTACH:
-        MessageBox(NULL, L"DLL finalizada", L"Informação", MB_OK);
-        UnhookFunction();
-    case DLL_THREAD_DETACH:
     case DLL_PROCESS_DETACH:
+        RemoveHook();   // Remove o hook quando a DLL é descarregada
         break;
     }
     return TRUE;
