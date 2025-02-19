@@ -1,3 +1,4 @@
-Exercicio de faculdade que envolve a criação de uma DLL que faz um hook simples para detectar chamadas de sistema, como ler e escrever...
-Para compilar use MinHook.
+#Exercicio de faculdade  
+envolve a criação de uma DLL que faz um hook simples para detectar chamadas de sistema, como ler e escrever...
+*Para compilar use MinHook.*
 Basta usar um injetor de dll (Tem no meu repositorio) e injetar em algum .exe 
